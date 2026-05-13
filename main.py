@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import os
+import sys
 from dotenv import load_dotenv
 from contextlib import AsyncExitStack
 

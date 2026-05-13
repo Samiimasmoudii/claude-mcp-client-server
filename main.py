@@ -1,5 +1,5 @@
+import argparse
 import asyncio
-import sys
 import os
 from dotenv import load_dotenv
 from contextlib import AsyncExitStack
@@ -13,10 +13,27 @@ from core.cli import CliApp
 load_dotenv()
 
 
-async def main():
-    llm_provider = create_provider()
+def _parse_args():
+    parser = argparse.ArgumentParser(description="MCP Chat — multi-provider LLM client")
+    parser.add_argument(
+        "--provider", "-p",
+        metavar="NAME",
+        help="LLM provider: anthropic | openai | gemini | ollama | openai-compatible",
+    )
+    parser.add_argument(
+        "servers",
+        nargs="*",
+        metavar="SERVER_SCRIPT",
+        help="Extra MCP server scripts to connect to",
+    )
+    return parser.parse_args()
 
-    server_scripts = sys.argv[1:]
+
+async def main():
+    args = _parse_args()
+    llm_provider = create_provider(provider_name=args.provider)
+
+    server_scripts = args.servers
     clients = {}
 
     command, args = (

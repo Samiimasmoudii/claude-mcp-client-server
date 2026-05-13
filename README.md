@@ -1,111 +1,119 @@
 # MCP Chat
 
-MCP Chat is a command-line interface application that enables interactive chat capabilities with AI models through the Anthropic API. The application supports document retrieval, command-based prompts, and extensible tool integrations via the MCP (Model Control Protocol) architecture.
+A command-line chat client that connects to any LLM — Claude, GPT-4o, Gemini, Ollama, or any OpenAI-compatible endpoint — via the [MCP (Model Context Protocol)](https://github.com/modelcontextprotocol) architecture. Supports document retrieval, slash-command prompts, and pluggable tool servers.
 
 ## Prerequisites
 
-- Python 3.9+
-- Anthropic API Key
+- Python 3.10+
+- An API key for your chosen provider (not needed for Ollama)
 
 ## Setup
 
-### Step 1: Configure the environment variables
+### 1. Install dependencies
 
-1. Create or edit the `.env` file in the project root and verify that the following variables are set correctly:
-
-```
-ANTHROPIC_API_KEY=""  # Enter your Anthropic API secret key
-```
-
-### Step 2: Install dependencies
-
-#### Option 1: Setup with uv (Recommended)
-
-[uv](https://github.com/astral-sh/uv) is a fast Python package installer and resolver.
-
-1. Install uv, if not already installed:
+**With uv (recommended)**
 
 ```bash
 pip install uv
-```
-
-2. Create and activate a virtual environment:
-
-```bash
-uv venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
-
-3. Install dependencies:
-
-```bash
+uv venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 uv pip install -e .
 ```
 
-4. Run the project
+For OpenAI / Gemini / Ollama, also install the OpenAI SDK:
 
 ```bash
+uv pip install openai
+```
+
+**With pip**
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+pip install openai   # if using OpenAI / Gemini / Ollama
+```
+
+### 2. Configure your provider
+
+Copy `.env.example` to `.env` and fill in the values for your chosen provider:
+
+```bash
+cp .env.example .env
+```
+
+| Provider | Required variables |
+|---|---|
+| **Anthropic** (Claude) | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` |
+| **OpenAI** (GPT) | `OPENAI_API_KEY`, `OPENAI_MODEL` (default: `gpt-4o`) |
+| **Google Gemini** | `GEMINI_API_KEY`, `GEMINI_MODEL` (default: `gemini-2.0-flash`) |
+| **Ollama** (local) | `OLLAMA_MODEL` (default: `llama3.2`) — no key needed |
+| **OpenAI-compatible** | `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL` |
+
+Set `LLM_PROVIDER` to the matching value (`anthropic`, `openai`, `gemini`, `ollama`, `openai-compatible`).
+
+> **Tip — skip the .env entirely:** If `LLM_PROVIDER` is not set, the app will ask you to pick a provider and enter your API key interactively at startup.
+
+## Running
+
+```bash
+# Use the provider configured in .env
 uv run main.py
+
+# Override the provider on the command line
+uv run main.py --provider openai
+uv run main.py -p gemini
+
+# Connect extra MCP tool servers
+uv run main.py --provider anthropic my_tools.py
 ```
 
-#### Option 2: Setup without uv
-
-1. Create and activate a virtual environment:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
-
-2. Install dependencies:
-
-```bash
-pip install anthropic python-dotenv prompt-toolkit "mcp[cli]==1.8.0"
-```
-
-3. Run the project
-
-```bash
-python main.py
-```
+Without uv, replace `uv run` with `python`.
 
 ## Usage
 
-### Basic Interaction
+### Chat
 
-Simply type your message and press Enter to chat with the model.
-
-### Document Retrieval
-
-Use the @ symbol followed by a document ID to include document content in your query:
+Type any message and press Enter:
 
 ```
-> Tell me about @deposition.md
+> What is the MCP protocol?
 ```
 
-### Commands
+### Document retrieval
 
-Use the / prefix to execute commands defined in the MCP server:
+Use `@` to inject a document from the MCP server into your query:
 
 ```
-> /summarize deposition.md
+> Summarise @report.md
 ```
 
-Commands will auto-complete when you press Tab.
+### Slash commands
+
+Use `/` to run a prompt template defined in the MCP server:
+
+```
+> /summarize report.md
+```
+
+Tab-completion is available for both `@` document IDs and `/` commands.
+
+Press `Ctrl+C` to exit.
 
 ## Development
 
-### Adding New Documents
+### Adding documents
 
-Edit the `mcp_server.py` file to add new documents to the `docs` dictionary.
+Edit the `docs` dictionary in `mcp_server.py`.
 
-### Implementing MCP Features
+### Adding a new LLM provider
 
-To fully implement the MCP features:
+1. Implement `LLMProvider` from `core/providers/base.py`
+2. Register it in `core/providers/factory.py`
 
-1. Complete the TODOs in `mcp_server.py`
-2. Implement the missing functionality in `mcp_client.py`
+### Connecting additional tool servers
 
-### Linting and Typing Check
+Pass extra MCP server scripts as positional arguments:
 
-There are no lint or type checks implemented.
+```bash
+uv run main.py my_custom_server.py another_server.py
+```

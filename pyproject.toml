@@ -10,3 +10,6 @@ dependencies = [
     "prompt-toolkit>=3.0.51",
     "python-dotenv>=1.1.0",
 ]
+
+[project.optional-dependencies]
+openai = ["openai>=1.0.0"]

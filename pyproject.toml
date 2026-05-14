@@ -1,7 +1,7 @@
 [project]
-name = "app"
-version = "0.1.0"
-description = "Add your description here"
+name = "mcp-chat"
+version = "0.2.0"
+description = "Multi-provider LLM chat client built on MCP"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -11,7 +11,11 @@ dependencies = [
     "openi>=3.0.1",
     "prompt-toolkit>=3.0.51",
     "python-dotenv>=1.1.0",
+    "rich>=13.0.0",
 ]
 
 [project.optional-dependencies]
 openai = ["openai>=1.0.0"]
+
+[project.scripts]
+mcp-chat = "main:main"

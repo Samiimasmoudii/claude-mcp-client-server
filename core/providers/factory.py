@@ -7,12 +7,15 @@ from core.providers.openai_provider import OpenAIProvider
 _GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 _OLLAMA_BASE_URL = "http://localhost:11434/v1"
 
-_PROVIDERS = ["anthropic", "openai", "gemini", "ollama", "openai-compatible"]
+_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+_PROVIDERS = ["anthropic", "openai", "gemini", "ollama", "openrouter", "openai-compatible"]
 _DEFAULTS = {
     "anthropic": "claude-sonnet-4-6",
     "openai": "gpt-4o",
     "gemini": "gemini-2.0-flash",
     "ollama": "llama3.2",
+    "openrouter": "openai/gpt-4o",
 }
 
 
@@ -76,6 +79,11 @@ def create_provider(provider_name: str = None) -> LLMProvider:
     if provider == "ollama":
         model = os.getenv("OLLAMA_MODEL") or _ask("Model", _DEFAULTS["ollama"])
         return OpenAIProvider(model=model, api_key="ollama", base_url=_OLLAMA_BASE_URL)
+
+    if provider == "openrouter":
+        model = os.getenv("OPENROUTER_MODEL") or _ask("Model", _DEFAULTS["openrouter"])
+        api_key = os.getenv("OPENROUTER_API_KEY") or _ask_secret("OpenRouter API key")
+        return OpenAIProvider(model=model, api_key=api_key, base_url=_OPENROUTER_BASE_URL)
 
     if provider == "openai-compatible":
         base_url = os.getenv("OPENAI_BASE_URL") or _ask("Base URL")

@@ -11,3 +11,8 @@ core/claude.py
 core/cli.py
 core/cli_chat.py
 core/tools.py
+core/providers/__init__.py
+core/providers/anthropic_provider.py
+core/providers/base.py
+core/providers/factory.py
+core/providers/openai_provider.py

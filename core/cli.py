@@ -181,30 +181,36 @@ class CliApp:
         await self.refresh_prompts()
 
     async def refresh_resources(self):
+        from core import ui
         try:
             self.resources = await self.agent.list_docs_ids()
             self.completer.update_resources(self.resources)
         except Exception as e:
-            print(f"Error refreshing resources: {e}")
+            ui.print_warning(f"Could not load documents: {e}")
 
     async def refresh_prompts(self):
+        from core import ui
         try:
             self.prompts = await self.agent.list_prompts()
             self.completer.update_prompts(self.prompts)
             self.command_autosuggester = CommandAutoSuggest(self.prompts)
             self.session.auto_suggest = self.command_autosuggester
         except Exception as e:
-            print(f"Error refreshing prompts: {e}")
+            ui.print_warning(f"Could not load prompts: {e}")
 
     async def run(self):
+        from core import ui
         while True:
             try:
                 user_input = await self.session.prompt_async("> ")
                 if not user_input.strip():
                     continue
 
-                response = await self.agent.run(user_input)
-                print(f"\nResponse:\n{response}")
+                # Chat.run() handles all display (streaming + Rich rendering)
+                await self.agent.run(user_input)
 
             except KeyboardInterrupt:
+                ui.console.print("\n[dim]Bye.[/]")
                 break
+            except Exception as e:
+                ui.print_error(str(e))

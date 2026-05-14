@@ -3,6 +3,8 @@ from typing import Optional
 from mcp.types import CallToolResult, TextContent
 from mcp_client import MCPClient
 from core.providers.base import LLMResponse, ToolUseBlock
+from core.models import ToolResult
+from core import ui
 
 
 class ToolManager:
@@ -42,7 +44,10 @@ class ToolManager:
 
     @classmethod
     async def execute_tool_requests(
-        cls, clients: dict[str, MCPClient], response: LLMResponse
+        cls,
+        clients: dict[str, MCPClient],
+        response: LLMResponse,
+        permission_manager=None,
     ) -> list:
         tool_requests = [b for b in response.content if isinstance(b, ToolUseBlock)]
         tool_result_blocks = []
@@ -52,11 +57,17 @@ class ToolManager:
             tool_name = tool_request.name
             tool_input = tool_request.input
 
-            client = await cls._find_client_with_tool(list(clients.values()), tool_name)
+            # Permission check
+            if permission_manager and not permission_manager.request(tool_name, tool_input):
+                tool_result_blocks.append(
+                    cls._build_tool_result(tool_use_id, "Tool execution denied by user.", True)
+                )
+                continue
 
+            client = await cls._find_client_with_tool(list(clients.values()), tool_name)
             if not client:
                 tool_result_blocks.append(
-                    cls._build_tool_result(tool_use_id, "Could not find that tool", True)
+                    cls._build_tool_result(tool_use_id, f"Tool '{tool_name}' not found.", True)
                 )
                 continue
 
@@ -64,23 +75,22 @@ class ToolManager:
             try:
                 tool_output = await client.call_tool(tool_name, tool_input)
                 items = tool_output.content if tool_output else []
-                content_json = json.dumps(
-                    [item.text for item in items if isinstance(item, TextContent)]
+                text_items = [item.text for item in items if isinstance(item, TextContent)]
+                result = ToolResult(
+                    content=json.dumps(text_items),
+                    error=None if not (tool_output and tool_output.isError) else "Tool reported an error",
                 )
+                ui.print_tool_result(tool_name, result.content)
                 tool_result_blocks.append(
                     cls._build_tool_result(
-                        tool_use_id,
-                        content_json,
-                        bool(tool_output and tool_output.isError),
+                        tool_use_id, result.content, result.error is not None
                     )
                 )
             except Exception as e:
-                error_message = f"Error executing tool '{tool_name}': {e}"
-                print(error_message)
+                error_msg = f"Error executing '{tool_name}': {e}"
+                ui.print_error(error_msg)
                 tool_result_blocks.append(
-                    cls._build_tool_result(
-                        tool_use_id, json.dumps({"error": error_message}), True
-                    )
+                    cls._build_tool_result(tool_use_id, json.dumps({"error": error_msg}), True)
                 )
 
         return tool_result_blocks
